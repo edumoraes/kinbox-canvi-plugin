@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kinbox Plugin - Cobrança Canvi</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="text/javascript" src="https://andrody.github.io/kinbox-lib/kinboxjs.js"></script>
+    <script defer type="text/javascript" src="./plugin.js"></script>
+</head>
+<body class="bg-slate-50 text-slate-800">
+    <div class="max-w-2xl mx-auto p-4">
+        <header class="mb-4">
+            <h1 class="text-xl font-semibold">Criar Cobrança PIX - Canvi</h1>
+            <p class="text-sm text-slate-600">Plugin Kinbox (iframe) com TailwindCSS</p>
+        </header>
+
+        <section class="mb-4 p-3 rounded border bg-white">
+            <h2 class="font-medium mb-2">Contexto da Conversa</h2>
+            <div id="conversationCtx" class="text-sm text-slate-700">
+                Aguardando seleção de conversa...
+            </div>
+        </section>
+
+        <section class="mb-6 p-4 rounded border bg-white">
+            <h2 class="font-medium mb-3">Dados da Cobrança</h2>
+            <form id="chargeForm" class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <label class="block">
+                        <span class="text-sm">Valor (R$)</span>
+                        <input id="valor" type="number" min="0" step="0.01" required class="mt-1 w-full rounded border-slate-300 focus:border-indigo-500 focus:ring-indigo-500" placeholder="100.00" />
+                    </label>
+                    <label class="block">
+                        <span class="text-sm">Vencimento (ISO 8601, opcional)</span>
+                        <input id="vencimento" type="text" class="mt-1 w-full rounded border-slate-300 focus:border-indigo-500 focus:ring-indigo-500" placeholder="2025-10-07T16:45:00" />
+                    </label>
+                </div>
+                <label class="block">
+                    <span class="text-sm">Descrição</span>
+                    <input id="descricao" type="text" required class="mt-1 w-full rounded border-slate-300 focus:border-indigo-500 focus:ring-indigo-500" placeholder="Descrição da cobrança" />
+                </label>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                    <label class="block">
+                        <span class="text-sm">Tipo de Transação</span>
+                        <select id="tipo_transacao" class="mt-1 w-full rounded border-slate-300 focus:border-indigo-500 focus:ring-indigo-500">
+                            <option value="invoice">invoice (com webhook)</option>
+                            <option value="invoiceFrenteCaixa">invoiceFrenteCaixa (sem webhook)</option>
+                        </select>
+                    </label>
+                    <label class="block">
+                        <span class="text-sm">Identificador Externo</span>
+                        <input id="identificador_externo" type="text" class="mt-1 w-full rounded border-slate-300 focus:border-indigo-500 focus:ring-indigo-500" placeholder="gerado automaticamente" />
+                    </label>
+                    <label class="block">
+                        <span class="text-sm">Identificador Movimento</span>
+                        <input id="identificador_movimento" type="text" class="mt-1 w-full rounded border-slate-300 focus:border-indigo-500 focus:ring-indigo-500" placeholder="gerado automaticamente" />
+                    </label>
+                </div>
+                <label class="block">
+                    <span class="text-sm">Texto de Instrução</span>
+                    <input id="texto_instrucao" type="text" required class="mt-1 w-full rounded border-slate-300 focus:border-indigo-500 focus:ring-indigo-500" placeholder="Resumo da cobrança" />
+                </label>
+
+                <div class="pt-2">
+                    <h3 class="text-sm font-medium mb-2">Dados do Devedor (opcional)</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        <label class="block">
+                            <span class="text-sm">Nome</span>
+                            <input id="cliente_nome" type="text" class="mt-1 w-full rounded border-slate-300 focus:border-indigo-500 focus:ring-indigo-500" />
+                        </label>
+                        <label class="block">
+                            <span class="text-sm">Email</span>
+                            <input id="cliente_email" type="email" class="mt-1 w-full rounded border-slate-300 focus:border-indigo-500 focus:ring-indigo-500" />
+                        </label>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
+                        <label class="block">
+                            <span class="text-sm">Tipo Documento</span>
+                            <select id="cliente_tipo_documento" class="mt-1 w-full rounded border-slate-300 focus:border-indigo-500 focus:ring-indigo-500">
+                                <option value="cpf">CPF</option>
+                                <option value="cnpj">CNPJ</option>
+                            </select>
+                        </label>
+                        <label class="block">
+                            <span class="text-sm">Número Documento</span>
+                            <input id="cliente_numero_documento" type="text" class="mt-1 w-full rounded border-slate-300 focus:border-indigo-500 focus:ring-indigo-500" />
+                        </label>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-2 pt-2">
+                    <button id="btnCriar" type="submit" class="inline-flex items-center px-4 py-2 rounded bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50">Criar Cobrança PIX</button>
+                    <button id="btnSimular" type="button" class="inline-flex items-center px-4 py-2 rounded bg-slate-200 hover:bg-slate-300">Simular Cobrança</button>
+                </div>
+            </form>
+        </section>
+
+        <section class="p-4 rounded border bg-white">
+            <h2 class="font-medium mb-2">Resultado</h2>
+            <pre id="result" class="text-xs bg-slate-50 p-3 rounded overflow-x-auto">Aguardando...</pre>
+        </section>
+    </div>
+</body>
+</html>

@@ -1,0 +1,64 @@
+---
+globs: *.html,*.js,docs/**/*.md
+---
+## Kinbox SDK quick reference
+
+Source: `[docs/kinbox-sdk.md](mdc:docs/kinbox-sdk.md)` and example `[docs/plugin-kinbox-example.md](mdc:docs/plugin-kinbox-example.md)`.
+
+### Include SDK in plugin page
+```html
+<script src="https://andrody.github.io/kinbox-lib/kinboxjs.js"></script>
+```
+
+### Events
+- `Kinbox.on("conversation", cb)` — current conversation context payload when user focuses a chat.
+- `Kinbox.on("no_conversation", cb)` — no active conversation.
+- `Kinbox.on("callback", cb)` — general callback channel for previous actions.
+
+### Common actions
+- Loading
+```javascript
+Kinbox.loading(true)
+Kinbox.loading(false)
+```
+- Toast
+```javascript
+Kinbox.toast("success", "Ok");
+Kinbox.toast("error", "Falhou");
+```
+- Dialog confirm
+```javascript
+Kinbox.dialog("confirm", { title, description, okText, cancelText }, (confirmed) => {
+  if (confirmed) { Kinbox.toast("success", "Feito"); }
+})
+```
+- Set custom fields
+```javascript
+// Contact field
+Kinbox.setProperty({ key: "idade-changed", type: "contact", contactId, fields: { idade: { value: 20 } } })
+// Session field
+Kinbox.setProperty({ key: "idade-changed", type: "session", sessionId, fields: { idade_sessao: { value: 20 } } })
+```
+- Assignment and routing
+```javascript
+Kinbox.assignTo(memberId)
+Kinbox.moveToGroup(groupId)
+Kinbox.addTag(tagId)
+Kinbox.removeTag(tagId)
+```
+- Send form
+```javascript
+Kinbox.sendForm({ items: [ /* text, select, multi-select, number, decimal, date */ ], type: "modal", title: "Form" }, (payload) => {
+  console.log(payload)
+})
+```
+- Workspace info
+```javascript
+Kinbox.getWorkspaceInfo((info) => {
+  // info.members, info.tags, info.groups, info.customFields, ...
+})
+```
+
+### Runtime notes
+- `window.Kinbox` posts messages to parent; ensure plugin is embedded in Kinbox environment.
+- Use `conversation` payload to read `contact.id`, `session.id`, `conversation.id`, tags, assignee, and user.

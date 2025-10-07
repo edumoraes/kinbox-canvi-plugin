@@ -1,0 +1,33 @@
+---
+description: Canvi Gateway API basics for payments integration from docs/canvi-api.md
+---
+## Canvi Gateway API quickstart
+
+Source: `[docs/canvi-api.md](mdc:docs/canvi-api.md)`
+
+- **Base URLs**: Sandbox `https://gateway-homol.service-canvi.com.br` (also seen as `https://sandbox-gateway.service-canvi.com.br:8080`).
+- **Time zone**: UTC-4 (Manaus), ISO 8601 timestamps.
+- **Response envelope**:
+```json
+{ "code": "string", "mensagem": "string", "data": "any" }
+```
+- **Webhooks**: Configure to receive transaction status updates when using `invoice` mode.
+
+### PIX endpoints
+- Criar cobrança PIX
+  - POST `/bt/invoice_pix`
+  - Required: `valor` (inteiro centavos), `descricao`, `identificador_externo` (único), `tipo_transacao` ("invoice" ou "invoiceFrenteCaixa"), `texto_instrucao`, `identificador_movimento`
+  - Optional: `vencimento` (default ~1h), `cliente` { `nome`, `tipo_documento` (cpf/cnpj), `numero_documento`, `e-mail` }
+
+- Consultar cobrança PIX
+  - POST `/bt/consulta_invoice_pix`
+  - Body: `{ "id_invoice_pix": "<id>" }`
+
+- Criar devolução PIX
+  - POST `/bt/devolucao_pix`
+  - Body: `{ "id_invoice_pix": "<id>", "identificador_externo": <num>, "descricao": "...", "texto_instrucao": "..." }`
+
+### Integration tips
+- Generate UUIDs for `identificador_externo` and `identificador_movimento`.
+- For demo flows, simulate payments via sandbox and rely on webhooks for status.
+- From a Kinbox plugin, proxy sensitive calls via your backend; do not call gateway directly from the iframe.

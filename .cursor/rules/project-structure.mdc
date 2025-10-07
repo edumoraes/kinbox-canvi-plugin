@@ -1,0 +1,19 @@
+---
+alwaysApply: true
+---
+## Kinbox Plugin repo structure
+
+- Use `docs/` as the single source of truth for SDK usage and examples.
+- Example HTML/JS for plugins is in `[docs/plugin-kinbox-example.md](mdc:docs/plugin-kinbox-example.md)`.
+- The Kinbox SDK description and API surface live in `[docs/kinbox-sdk.md](mdc:docs/kinbox-sdk.md)`.
+- External payment gateway integration (Canvi) notes are in `[docs/canvi-api.md](mdc:docs/canvi-api.md)`.
+
+### Entry points for understanding
+- Start with `docs/kinbox-sdk.md` for events and actions (`Kinbox.on`, `Kinbox.dialog`, `Kinbox.toast`, `Kinbox.loading`, `Kinbox.setProperty`, `Kinbox.assignTo`, `Kinbox.moveToGroup`, `Kinbox.addTag`, `Kinbox.removeTag`, `Kinbox.sendForm`, `Kinbox.getWorkspaceInfo`).
+- Then see `docs/plugin-kinbox-example.md` for end‑to‑end usage in `index.html` and `plugin.js`.
+- Consult `docs/canvi-api.md` only if implementing payment flows.
+
+### Implementation guidance
+- A plugin is an iframe page that must include the SDK script tag: `https://andrody.github.io/kinbox-lib/kinboxjs.js`.
+- Register event listeners early (e.g., on `conversation`) and use actions via the global `window.Kinbox` object.
+- Prefer `Kinbox.getWorkspaceInfo` to fetch members, tags, groups, and available custom fields when needing IDs.
