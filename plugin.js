@@ -17,6 +17,15 @@ function toCents(brl) {
 function uuid() {
 	return (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : Math.random().toString(36).slice(2)
 }
+function onlyDigits(v) {
+	return (v || "").replace(/\D+/g, "")
+}
+function inferDocType(doc) {
+	var d = onlyDigits(doc)
+	if (d.length === 11) return "cpf"
+	if (d.length === 14) return "cnpj"
+	return "cpf"
+}
 function setLoading(isLoading) {
 	try { window.Kinbox && Kinbox.loading(isLoading) } catch (_) {}
 	var btn = $("btnCriar")
@@ -27,6 +36,47 @@ function showResult(obj) {
 	if (!el) return
 	el.textContent = typeof obj === "string" ? obj : JSON.stringify(obj, null, 2)
 }
+function populateDebtorFromContact(contact) {
+	if (!contact) return
+	var nome = contact.name || ""
+	var email = contact.email || ""
+	var cpfField = contact.customFields && (contact.customFields.cpf?.value || contact.customFields.CPF?.value)
+	var cnpjField = contact.customFields && (contact.customFields.cnpj?.value || contact.customFields.CNPJ?.value)
+	var doc = cpfField || cnpjField || ""
+	var tipo = doc ? inferDocType(doc) : "cpf"
+	var numero = doc ? onlyDigits(doc) : ""
+	var nomeEl = $("cliente_nome"), emailEl = $("cliente_email"), tipoEl = $("cliente_tipo_documento"), numEl = $("cliente_numero_documento")
+	if (nomeEl && !nomeEl.value) nomeEl.value = nome
+	if (emailEl && !emailEl.value) emailEl.value = email
+	if (tipoEl) tipoEl.value = tipo
+	if (numEl && !numEl.value) numEl.value = numero
+}
+function clearDebtorFields() {
+	var nomeEl = $("cliente_nome"), emailEl = $("cliente_email"), tipoEl = $("cliente_tipo_documento"), numEl = $("cliente_numero_documento")
+	if (nomeEl) nomeEl.value = ""
+	if (emailEl) emailEl.value = ""
+	if (tipoEl) tipoEl.value = "cpf"
+	if (numEl) numEl.value = ""
+}
+function normalizeVencimento(input) {
+	// datetime-local => "YYYY-MM-DDTHH:MM" (sem timezone). Padroniza para "YYYY-MM-DDTHH:MM:SS".
+	if (!input) return undefined
+	if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(input)) return input + ":00"
+	if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(input)) return input
+	try {
+		var d = new Date(input)
+		if (!isNaN(d.getTime())) {
+			var y = d.getFullYear()
+			var m = String(d.getMonth() + 1).padStart(2, "0")
+			var day = String(d.getDate()).padStart(2, "0")
+			var hh = String(d.getHours()).padStart(2, "0")
+			var mm = String(d.getMinutes()).padStart(2, "0")
+			var ss = String(d.getSeconds()).padStart(2, "0")
+			return `${y}-${m}-${day}T${hh}:${mm}:${ss}`
+		}
+	} catch (_) {}
+	return undefined
+}
 
 /* Eventos Kinbox */
 if (window.Kinbox && typeof Kinbox.on === "function") {
@@ -34,12 +84,14 @@ if (window.Kinbox && typeof Kinbox.on === "function") {
 		conversation = data
 		var ctx = $("conversationCtx")
 		if (ctx) ctx.textContent = `Contato: ${data?.contact?.name || "-"} (ID: ${data?.contact?.id || "-"}) | Conversa: ${data?.conversation?.id || "-"}`
+		populateDebtorFromContact(data?.contact)
 		Kinbox.getWorkspaceInfo(function (info) { workspaceInfo = info })
 	})
 	Kinbox.on("no_conversation", function () {
 		conversation = null
 		var ctx = $("conversationCtx")
 		if (ctx) ctx.textContent = "Sem conversa ativa"
+		clearDebtorFields()
 	})
 }
 
@@ -53,7 +105,7 @@ window.addEventListener("DOMContentLoaded", function () {
 
 function collectForm() {
 	var valor = parseFloat($("valor").value)
-	var vencimento = $("vencimento").value.trim()
+	var vencimentoRaw = $("vencimento").value.trim()
 	var descricao = $("descricao").value.trim()
 	var tipo_transacao = $("tipo_transacao").value
 	var identificador_externo = $("identificador_externo").value.trim() || uuid()
@@ -73,16 +125,16 @@ function collectForm() {
 		identificador_externo,
 		identificador_movimento,
 	}
-	if (vencimento) body.vencimento = vencimento
+	// NÃO definir vencimento aqui; será normalizado apenas antes do envio
 	if (cliente_nome || cliente_email || cliente_numero_documento) {
 		body.cliente = {
 			nome: cliente_nome || undefined,
 			"tipo_documento": cliente_tipo_documento,
-			"numero_documento": cliente_numero_documento || undefined,
+			"numero_documento": onlyDigits(cliente_numero_documento) || undefined,
 			"e-mail": cliente_email || undefined,
 		}
 	}
-	return { body, meta: { valor, vencimento, descricao, tipo_transacao, identificador_externo, identificador_movimento, texto_instrucao } }
+	return { body, meta: { vencimentoRaw, valor, descricao, tipo_transacao, identificador_externo, identificador_movimento, texto_instrucao } }
 }
 
 async function handleCreateCharge(e) {
@@ -91,7 +143,10 @@ async function handleCreateCharge(e) {
 		try { Kinbox.toast("warning", "Selecione uma conversa primeiro") } catch (_) {}
 		return
 	}
-	var { body } = collectForm()
+	var collected = collectForm()
+	var body = collected.body
+	var venc = normalizeVencimento(collected.meta.vencimentoRaw)
+	if (venc) body.vencimento = venc
 	setLoading(true)
 	try {
 		// Chama o backend do parceiro (proxy) que integra com o gateway
@@ -119,12 +174,15 @@ async function handleCreateCharge(e) {
 }
 
 function simulateCharge() {
-	var { body } = collectForm()
+	var collected = collectForm()
+	var body = collected.body
+	var venc = normalizeVencimento(collected.meta.vencimentoRaw)
 	var simulated = {
 		status: "simulated",
 		reference: body.identificador_externo,
 		amount: body.valor,
 		description: body.descricao,
+		vencimento: venc || null,
 	}
 	showResult(simulated)
 	if (window.Kinbox) {
